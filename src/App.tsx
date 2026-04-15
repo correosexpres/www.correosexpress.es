@@ -235,7 +235,7 @@ export default function App() {
             <circle cx="10" cy="7" r="4"/>
             <path d="M2 17c0-4 3.6-7 8-7s8 3 8 7"/>
           </svg>
-          ÁREA PRIVADA
+          <span>ÁREA PRIVADA</span>
         </a>
       </header>
 
@@ -401,7 +401,7 @@ export default function App() {
           </div>
           <div className="hero-content-col">
             <div className="hero-text-block">
-              <h1 className="hero-tagline">Tú eliges cuándo y dónde.<br />Nosotros lo hacemos llegar.</h1>
+              <h1 className="hero-tagline">Tú eliges cuándo y dónde.<br className="hidden sm:block" /> Nosotros lo hacemos llegar.</h1>
               <p className="hero-subtitle">Soluciones de envío para tu día a día.</p>
               <button className="btn-yellow flex items-center gap-2">
                 ENVIAR AHORA
@@ -416,7 +416,7 @@ export default function App() {
           </div>
         </div>
 
-        <div className="max-w-[1300px] mx-auto px-6 relative -top-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="max-w-[1300px] mx-auto px-6 relative -top-6 lg:-top-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Tracking Panel */}
             <div className="tracking-panel">
               <div className="tracking-title">Sigue tu envío</div>
@@ -434,7 +434,12 @@ export default function App() {
                   onClick={handleSearch}
                   disabled={isSearching}
                 >
-                  {isSearching ? '...' : 'BUSCAR'}
+                  {isSearching ? '...' : (
+                    <>
+                      <span className="hidden sm:inline">BUSCAR</span>
+                      <Search className="sm:hidden" size={20} />
+                    </>
+                  )}
                 </button>
               </div>
               
