@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Image as ImageIcon, Calendar, Hash, LogOut } from 'lucide-react';
+import { Lock, Image as ImageIcon, Calendar, Hash, LogOut, Trash2 } from 'lucide-react';
 
 export default function AdminPanel() {
   const [password, setPassword] = useState('');
@@ -190,6 +190,29 @@ export default function AdminPanel() {
     localStorage.removeItem('adminToken');
     setIsLoggedIn(false);
     setUploads([]);
+  };
+
+  const handleDeleteUpload = async (id: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este comprobante?')) return;
+    
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(`/api/admin/uploads/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': token || ''
+        }
+      });
+      
+      if (res.ok) {
+        setUploads(prev => prev.filter(u => u.id !== id));
+      } else {
+        alert('Error al eliminar el comprobante');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de conexión al eliminar');
+    }
   };
 
   if (!isLoggedIn) {
@@ -433,7 +456,7 @@ export default function AdminPanel() {
                     </div>
                   )}
                 </div>
-                <div className="p-4 bg-white">
+                <div className="p-4 bg-white space-y-2">
                   <a 
                     href={upload.image} 
                     download={`comprobante_${upload.trackingNumber}.png`}
@@ -441,6 +464,13 @@ export default function AdminPanel() {
                   >
                     Descargar Comprobante
                   </a>
+                  <button 
+                    onClick={() => handleDeleteUpload(upload.id)}
+                    className="flex items-center justify-center gap-2 w-full text-center bg-red-500 text-white py-2 rounded text-sm font-medium hover:bg-red-600 transition-colors"
+                  >
+                    <Trash2 size={14} />
+                    Eliminar
+                  </button>
                 </div>
               </div>
             ))}
