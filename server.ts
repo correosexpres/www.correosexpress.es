@@ -196,6 +196,32 @@ app.get("/api/admin/uploads", (req, res) => {
   }
 });
 
+app.delete("/api/admin/uploads/:id", (req, res) => {
+  const token = req.headers.authorization;
+  if (token !== "Bearer admin-token-123" && token !== "admin-token-123") {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const { id } = req.params;
+    let uploads = [];
+    const fileContent = fs.readFileSync(UPLOADS_FILE, 'utf-8');
+    if (fileContent) {
+      uploads = JSON.parse(fileContent);
+    }
+    
+    if (!Array.isArray(uploads)) uploads = [];
+    
+    const filteredUploads = uploads.filter((u: any) => u.id !== id);
+    fs.writeFileSync(UPLOADS_FILE, JSON.stringify(filteredUploads));
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting upload:", error);
+    res.status(500).json({ error: "Failed to delete upload" });
+  }
+});
+
 async function startServer() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
