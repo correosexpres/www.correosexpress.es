@@ -44,17 +44,27 @@ body::before {
   height: 52px;
   display: flex;
   align-items: center;
-  padding: 0 32px;
+  justify-content: space-between; /* Changed from default flex */
+  padding: 0 16px;
   position: fixed;
   top: 4px; left: 0; right: 0;
   z-index: 1000;
 }
 
+@media (min-width: 768px) {
+  .top-bar { padding: 0 32px; }
+}
+
 .top-bar-left {
   display: flex;
   align-items: center;
-  flex: 1;
-  min-width: 0;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .top-bar-left { flex: 1; }
+  .hamburger-btn { position: absolute; left: 50%; transform: translateX(-50%); margin-right: 0; }
+  .top-bar-sep, .tab-link { display: none !important; }
 }
 
 .logo {
@@ -65,9 +75,13 @@ body::before {
 }
 
 .logo img {
-  height: 62px;
+  height: 48px; /* Smaller logo for mobile */
   width: auto;
   object-fit: contain;
+}
+
+@media (min-width: 768px) {
+  .logo img { height: 62px; }
 }
 
 .top-bar-sep {
@@ -122,6 +136,14 @@ body::before {
   white-space: nowrap;
   flex-shrink: 0;
   padding-right: 4px;
+}
+
+.area-privada span {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .area-privada span { display: inline; }
 }
 
 /* ===================== SIDEBAR ===================== */
@@ -383,6 +405,13 @@ body::before {
   border-radius: 0 6px 6px 0;
   cursor: pointer;
   text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 640px) {
+  .btn-buscar { padding: 14px 18px; }
 }
 
 .tracking-link-item {
@@ -740,8 +769,31 @@ body::before {
 
 /* ===================== RESPONSIVE ===================== */
 @media (max-width: 900px) {
-  .hero-img-full { grid-template-columns: 1fr; height: auto; }
-  .hero-img-col { height: 240px; }
+  .hero { 
+    grid-template-columns: 1fr; 
+    height: auto; 
+    background: var(--white);
+  }
+  .hero-image-col { 
+    height: 280px; 
+    order: 1;
+    clip-path: ellipse(120% 100% at 50% 0%); /* Slightly wider ellipse for better curve */
+  }
+  .hero-content-col {
+    order: 2;
+    padding: 32px 20px 60px;
+    text-align: center;
+    justify-content: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .hero-tagline {
+    font-size: 24px;
+  }
+  .hero-chevrons-right {
+    display: none;
+  }
   .footer-grid { grid-template-columns: repeat(2, 1fr); }
   .features-grid { grid-template-columns: repeat(2, 1fr); }
 }
