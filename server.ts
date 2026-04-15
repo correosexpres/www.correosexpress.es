@@ -1,22 +1,19 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Increase payload size for base64 images
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-const UPLOADS_FILE = path.join(process.cwd(), 'uploads.json');
-const STATUS_FILE = path.join(process.cwd(), 'status.json');
-const SHIPMENT_FILE = path.join(process.cwd(), 'shipment.json');
+const currentDir = process.cwd();
+const UPLOADS_FILE = path.join(currentDir, 'uploads.json');
+const STATUS_FILE = path.join(currentDir, 'status.json');
+const SHIPMENT_FILE = path.join(currentDir, 'shipment.json');
 
 const DEFAULT_SHIPMENT = {
   trackingNumber: "6635471299413458",
@@ -202,6 +199,7 @@ app.get("/api/admin/uploads", (req, res) => {
 async function startServer() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
