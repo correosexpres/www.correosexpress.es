@@ -9,7 +9,8 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(false);
   const [currentStatus, setCurrentStatus] = useState('pending');
   const [statusUpdating, setStatusUpdating] = useState(false);
-  const [shipmentData, setShipmentData] = useState<any>(null);
+  const [shipments, setShipments] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState(0);
   const [savingShipment, setSavingShipment] = useState(false);
 
   useEffect(() => {
@@ -17,7 +18,6 @@ export default function AdminPanel() {
     if (token) {
       setIsLoggedIn(true);
       fetchUploads(token);
-      fetchStatus();
       fetchShipmentData();
     }
   }, []);
@@ -26,20 +26,23 @@ export default function AdminPanel() {
     try {
       const res = await fetch(`/api/shipment?t=${Date.now()}`, { cache: 'no-store' });
       const data = await res.json();
-      setShipmentData(data);
+      setShipments(Array.isArray(data) ? data : [data]);
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleShipmentChange = (field: string, value: string) => {
-    setShipmentData((prev: any) => ({ ...prev, [field]: value }));
+  const handleShipmentChange = (index: number, field: string, value: string) => {
+    setShipments(prev => {
+      const newShipments = [...prev];
+      newShipments[index] = { ...newShipments[index], [field]: value };
+      return newShipments;
+    });
   };
 
-  const handleSaveShipment = async () => {
+  const handleSaveShipments = async () => {
     setSavingShipment(true);
     try {
-      console.log('Attempting to save shipment data:', shipmentData);
       const token = localStorage.getItem('adminToken');
       const res = await fetch('/api/admin/shipment', {
         method: 'POST',
@@ -47,7 +50,7 @@ export default function AdminPanel() {
           'Content-Type': 'application/json',
           'Authorization': token || ''
         },
-        body: JSON.stringify(shipmentData)
+        body: JSON.stringify(shipments)
       });
       
       if (!res.ok) {
@@ -55,8 +58,7 @@ export default function AdminPanel() {
         throw new Error(errorData.error || 'Error en la respuesta del servidor');
       }
       
-      alert('Datos guardados correctamente');
-      // Small delay before reload to ensure server has processed everything
+      alert('Todos los datos guardados correctamente');
       setTimeout(() => {
         window.location.reload();
       }, 500);
@@ -68,7 +70,7 @@ export default function AdminPanel() {
     }
   };
 
-  const handleResetShipment = async () => {
+  const handleResetShipments = async () => {
     if (!confirm('¿Estás seguro de que quieres restablecer todos los valores por defecto?')) return;
     
     setSavingShipment(true);
@@ -82,7 +84,7 @@ export default function AdminPanel() {
       });
       const data = await res.json();
       if (data.success) {
-        setShipmentData(data.data);
+        setShipments(data.data);
         alert('Datos restablecidos correctamente');
         setTimeout(() => {
           window.location.reload();
@@ -93,43 +95,6 @@ export default function AdminPanel() {
       alert('Error al restablecer los datos');
     } finally {
       setSavingShipment(false);
-    }
-  };
-
-  const fetchStatus = async () => {
-    try {
-      const res = await fetch(`/api/status?t=${Date.now()}`, {
-        cache: 'no-store'
-      });
-      const data = await res.json();
-      setCurrentStatus(data.status || 'pending');
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleStatusChange = async (newStatus: string) => {
-    setStatusUpdating(true);
-    try {
-      const token = localStorage.getItem('adminToken');
-      const res = await fetch('/api/admin/status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token || ''
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-      if (res.ok) {
-        setCurrentStatus(newStatus);
-      } else {
-        alert('Error al actualizar el estado');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Error de conexión al actualizar el estado');
-    } finally {
-      setStatusUpdating(false);
     }
   };
 
@@ -150,7 +115,6 @@ export default function AdminPanel() {
         localStorage.setItem('adminToken', 'Bearer ' + data.token);
         setIsLoggedIn(true);
         fetchUploads('Bearer ' + data.token);
-        fetchStatus();
         fetchShipmentData();
       } else {
         setError(data.error || 'Contraseña incorrecta');
@@ -268,34 +232,71 @@ export default function AdminPanel() {
       </header>
 
       <main className="max-w-6xl mx-auto p-6">
-        <div className="bg-white p-6 rounded-lg shadow-md mb-8 border border-gray-200">
-          <h2 className="text-lg font-bold text-[#1e3a6e] mb-4">Estado del Envío ({shipmentData?.trackingNumber || '6635471299413458'})</h2>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <select 
-              value={currentStatus} 
-              onChange={(e) => handleStatusChange(e.target.value)}
-              disabled={statusUpdating}
-              className="p-3 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e] flex-1 font-medium"
-            >
-              <option value="pending">Pendiente de pago de tasas (Rojo)</option>
-              <option value="validating">Pago en proceso de validación (Azul/Cian)</option>
-              <option value="verified">PAGO VERIFICADO / EN PROCESO DE DESPACHO (Amarillo/Naranja)</option>
-              <option value="transit">En Tránsito (Verde)</option>
-            </select>
-            {statusUpdating && <span className="text-gray-500 self-center font-medium">Actualizando...</span>}
-          </div>
-        </div>
-
-        {shipmentData && (
+        {shipments.length > 0 && (
           <div className="bg-white p-6 rounded-lg shadow-md mb-8 border border-gray-200">
-            <h2 className="text-lg font-bold text-[#1e3a6e] mb-4">Datos del Envío</h2>
+            <div className="flex border-b mb-6 overflow-x-auto">
+              {shipments.map((s, idx) => (
+                <button
+                  key={s.id}
+                  onClick={() => setActiveTab(idx)}
+                  className={`px-6 py-3 font-bold text-sm whitespace-nowrap transition-colors border-b-2 ${activeTab === idx ? 'border-[#1e3a6e] text-[#1e3a6e]' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                >
+                  Envío {idx + 1} ({s.trackingNumber})
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <label className="block text-sm font-bold text-[#1e3a6e] mb-2">Estado del Envío (Concepto)</label>
+                <select 
+                  value={shipments[activeTab].status} 
+                  onChange={(e) => handleShipmentChange(activeTab, 'status', e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e] font-medium"
+                >
+                  <option value="pending">Pendiente de pago de tasas (Rojo)</option>
+                  <option value="validating">Pago en proceso de validación (Azul/Cian)</option>
+                  <option value="verified">PAGO VERIFICADO / EN PROCESO DE DESPACHO (Amarillo/Naranja)</option>
+                  <option value="transit">En Tránsito (Verde)</option>
+                </select>
+              </div>
+
+              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
+                <label className="block text-sm font-bold text-[#1e3a6e] mb-2">Etiqueta Superior (Badge)</label>
+                <div className="flex gap-2 mb-2">
+                  <select 
+                    value={['RETENIDO', 'EN REVISIÓN', 'DESPACHANDO', 'EN TRÁNSITO'].includes(shipments[activeTab].badge) ? shipments[activeTab].badge : 'custom'} 
+                    onChange={(e) => {
+                      if (e.target.value !== 'custom') {
+                        handleShipmentChange(activeTab, 'badge', e.target.value);
+                      }
+                    }}
+                    className="flex-1 p-3 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e] font-medium"
+                  >
+                    <option value="RETENIDO">RETENIDO</option>
+                    <option value="EN REVISIÓN">EN REVISIÓN</option>
+                    <option value="DESPACHANDO">DESPACHANDO</option>
+                    <option value="EN TRÁNSITO">EN TRÁNSITO</option>
+                    <option value="custom">-- Personalizado --</option>
+                  </select>
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="Escribe etiqueta personalizada..."
+                  value={shipments[activeTab].badge} 
+                  onChange={(e) => handleShipmentChange(activeTab, 'badge', e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e] text-sm"
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Número de envío</label>
                 <input 
                   type="text" 
-                  value={shipmentData.trackingNumber} 
-                  onChange={(e) => handleShipmentChange('trackingNumber', e.target.value)}
+                  value={shipments[activeTab].trackingNumber} 
+                  onChange={(e) => handleShipmentChange(activeTab, 'trackingNumber', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e]"
                 />
               </div>
@@ -303,8 +304,8 @@ export default function AdminPanel() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Nombres & Apellidos</label>
                 <input 
                   type="text" 
-                  value={shipmentData.name} 
-                  onChange={(e) => handleShipmentChange('name', e.target.value)}
+                  value={shipments[activeTab].name} 
+                  onChange={(e) => handleShipmentChange(activeTab, 'name', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e]"
                 />
               </div>
@@ -312,8 +313,8 @@ export default function AdminPanel() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Código Postal</label>
                 <input 
                   type="text" 
-                  value={shipmentData.postalCode} 
-                  onChange={(e) => handleShipmentChange('postalCode', e.target.value)}
+                  value={shipments[activeTab].postalCode} 
+                  onChange={(e) => handleShipmentChange(activeTab, 'postalCode', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e]"
                 />
               </div>
@@ -321,8 +322,8 @@ export default function AdminPanel() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Dirección</label>
                 <input 
                   type="text" 
-                  value={shipmentData.address} 
-                  onChange={(e) => handleShipmentChange('address', e.target.value)}
+                  value={shipments[activeTab].address} 
+                  onChange={(e) => handleShipmentChange(activeTab, 'address', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e]"
                 />
               </div>
@@ -330,8 +331,8 @@ export default function AdminPanel() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Contacto</label>
                 <input 
                   type="text" 
-                  value={shipmentData.contact} 
-                  onChange={(e) => handleShipmentChange('contact', e.target.value)}
+                  value={shipments[activeTab].contact} 
+                  onChange={(e) => handleShipmentChange(activeTab, 'contact', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e]"
                 />
               </div>
@@ -339,8 +340,8 @@ export default function AdminPanel() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Paquete Verificado</label>
                 <input 
                   type="text" 
-                  value={shipmentData.packageVerified} 
-                  onChange={(e) => handleShipmentChange('packageVerified', e.target.value)}
+                  value={shipments[activeTab].packageVerified} 
+                  onChange={(e) => handleShipmentChange(activeTab, 'packageVerified', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e]"
                 />
               </div>
@@ -348,8 +349,8 @@ export default function AdminPanel() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Beneficiario</label>
                 <input 
                   type="text" 
-                  value={shipmentData.beneficiary} 
-                  onChange={(e) => handleShipmentChange('beneficiary', e.target.value)}
+                  value={shipments[activeTab].beneficiary} 
+                  onChange={(e) => handleShipmentChange(activeTab, 'beneficiary', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e]"
                 />
               </div>
@@ -357,8 +358,8 @@ export default function AdminPanel() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Concepto</label>
                 <input 
                   type="text" 
-                  value={shipmentData.concept} 
-                  onChange={(e) => handleShipmentChange('concept', e.target.value)}
+                  value={shipments[activeTab].concept} 
+                  onChange={(e) => handleShipmentChange(activeTab, 'concept', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e]"
                 />
               </div>
@@ -366,8 +367,8 @@ export default function AdminPanel() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Etiqueta IBAN (ej. IBAN BANCO (BBVA))</label>
                 <input 
                   type="text" 
-                  value={shipmentData.ibanLabel} 
-                  onChange={(e) => handleShipmentChange('ibanLabel', e.target.value)}
+                  value={shipments[activeTab].ibanLabel} 
+                  onChange={(e) => handleShipmentChange(activeTab, 'ibanLabel', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e]"
                 />
               </div>
@@ -375,8 +376,8 @@ export default function AdminPanel() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Número IBAN</label>
                 <input 
                   type="text" 
-                  value={shipmentData.ibanValue} 
-                  onChange={(e) => handleShipmentChange('ibanValue', e.target.value)}
+                  value={shipments[activeTab].ibanValue} 
+                  onChange={(e) => handleShipmentChange(activeTab, 'ibanValue', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e]"
                 />
               </div>
@@ -384,8 +385,8 @@ export default function AdminPanel() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Costo servicio de envío seguro</label>
                 <input 
                   type="text" 
-                  value={shipmentData.shippingCost} 
-                  onChange={(e) => handleShipmentChange('shippingCost', e.target.value)}
+                  value={shipments[activeTab].shippingCost} 
+                  onChange={(e) => handleShipmentChange(activeTab, 'shippingCost', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e]"
                 />
               </div>
@@ -393,8 +394,8 @@ export default function AdminPanel() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Costo de Paquete</label>
                 <input 
                   type="text" 
-                  value={shipmentData.packageCost} 
-                  onChange={(e) => handleShipmentChange('packageCost', e.target.value)}
+                  value={shipments[activeTab].packageCost} 
+                  onChange={(e) => handleShipmentChange(activeTab, 'packageCost', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e]"
                 />
               </div>
@@ -402,22 +403,22 @@ export default function AdminPanel() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Importe Total</label>
                 <input 
                   type="text" 
-                  value={shipmentData.totalAmount} 
-                  onChange={(e) => handleShipmentChange('totalAmount', e.target.value)}
+                  value={shipments[activeTab].totalAmount} 
+                  onChange={(e) => handleShipmentChange(activeTab, 'totalAmount', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e]"
                 />
               </div>
             </div>
             <div className="flex gap-4">
               <button 
-                onClick={handleSaveShipment}
+                onClick={handleSaveShipments}
                 disabled={savingShipment}
                 className="bg-[#1e3a6e] text-white px-6 py-2 rounded font-bold hover:bg-[#152a52] transition-colors disabled:opacity-70"
               >
-                {savingShipment ? 'Guardando...' : 'Guardar Cambios'}
+                {savingShipment ? 'Guardando...' : 'Guardar Todos los Cambios'}
               </button>
               <button 
-                onClick={handleResetShipment}
+                onClick={handleResetShipments}
                 disabled={savingShipment}
                 className="bg-gray-200 text-gray-700 px-6 py-2 rounded font-bold hover:bg-gray-300 transition-colors disabled:opacity-70"
               >
