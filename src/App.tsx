@@ -31,6 +31,7 @@ export default function App() {
   const [trackingStatus, setTrackingStatus] = useState("pending");
   const [isUploading, setIsUploading] = useState(false);
   const [shipmentData, setShipmentData] = useState<any>(null);
+  const [allShipments, setAllShipments] = useState<any[]>([]);
   const paymentRef = React.useRef<HTMLDivElement>(null);
 
   // Fetch shipment data on mount
@@ -39,7 +40,7 @@ export default function App() {
       try {
         const res = await fetch(`/api/shipment?t=${Date.now()}`, { cache: 'no-store' });
         const data = await res.json();
-        setShipmentData(data);
+        setAllShipments(Array.isArray(data) ? data : [data]);
       } catch (err) {
         console.error("Error fetching shipment data", err);
       }
@@ -54,18 +55,19 @@ export default function App() {
     setError("");
     
     try {
-      const res = await fetch(`/api/status?t=${Date.now()}`, { cache: 'no-store' });
-      const data = await res.json();
-      setTrackingStatus(data.status || 'pending');
-      
-      // Also fetch latest shipment data to ensure we have the correct tracking number
+      // Fetch latest shipments
       const shipRes = await fetch(`/api/shipment?t=${Date.now()}`, { cache: 'no-store' });
-      const shipData = await shipRes.json();
-      setShipmentData(shipData);
+      const shipments = await shipRes.json();
+      const shipmentsArray = Array.isArray(shipments) ? shipments : [shipments];
+      setAllShipments(shipmentsArray);
 
       setTimeout(() => {
         setIsSearching(false);
-        if (shipData && inputValue === shipData.trackingNumber) {
+        const found = shipmentsArray.find((s: any) => s.trackingNumber === inputValue);
+        
+        if (found) {
+          setShipmentData(found);
+          setTrackingStatus(found.status || 'pending');
           setShowResults(true);
           setTimeout(() => {
             document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' });
@@ -576,7 +578,9 @@ export default function App() {
                       <User size={16} className="text-[#1e3a6e]" />
                       DESTINATARIO
                     </h2>
-                    <span className="text-[10px] font-bold bg-[#1e3a6e] text-white px-2 py-1 rounded uppercase tracking-widest">En Tránsito</span>
+                    <span className="text-[10px] font-bold bg-[#1e3a6e] text-white px-2 py-1 rounded uppercase tracking-widest">
+                      {shipmentData?.badge || 'En Tránsito'}
+                    </span>
                   </div>
                   <div className="p-8 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
