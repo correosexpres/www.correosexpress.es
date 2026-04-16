@@ -4,7 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Increase payload size for base64 images
 app.use(express.json({ limit: '50mb' }));
@@ -12,38 +12,91 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const currentDir = process.cwd();
 const UPLOADS_FILE = path.join(currentDir, 'uploads.json');
-const STATUS_FILE = path.join(currentDir, 'status.json');
-const SHIPMENT_FILE = path.join(currentDir, 'shipment.json');
+const SHIPMENT_FILE = path.join(currentDir, 'shipments.json');
 
-const DEFAULT_SHIPMENT = {
-  trackingNumber: "6635471299413458",
-  name: "Nicola Tella",
-  postalCode: "50001, Zaragoza",
-  address: "Ps. Independencia 33, 50001, Zaragoza",
-  contact: "+34 614 11 39 38",
-  packageVerified: "Cable USB",
-  beneficiary: "5728",
-  concept: "Pago 5728",
-  ibanLabel: "IBAN BANCO (BBVA)",
-  ibanValue: "ES74 0182 2647 5902 0168 2392",
-  shippingCost: "14,58€ (PAGADO)",
-  packageCost: "4,00€",
-  totalAmount: "4,00€"
-};
+const DEFAULT_SHIPMENTS = [
+  {
+    id: "1",
+    trackingNumber: "6635471299413458",
+    name: "Nicola Tella",
+    postalCode: "50001, Zaragoza",
+    address: "Ps. Independencia 33, 50001, Zaragoza",
+    contact: "+34 614 11 39 38",
+    packageVerified: "Cable USB",
+    beneficiary: "5728",
+    concept: "Pago 5728",
+    ibanLabel: "IBAN BANCO (BBVA)",
+    ibanValue: "ES74 0182 2647 5902 0168 2392",
+    shippingCost: "14,58€ (PAGADO)",
+    packageCost: "4,00€",
+    totalAmount: "4,00€",
+    status: "pending",
+    badge: "EN TRÁNSITO"
+  },
+  {
+    id: "2",
+    trackingNumber: "6635471299413460",
+    name: "Juan Pérez",
+    postalCode: "28001, Madrid",
+    address: "Calle Mayor 1, 28001, Madrid",
+    contact: "+34 600 00 00 00",
+    packageVerified: "Documentos",
+    beneficiary: "1234",
+    concept: "Envío 1234",
+    ibanLabel: "IBAN BANCO (SANTANDER)",
+    ibanValue: "ES12 3456 7890 1234 5678 9012",
+    shippingCost: "10,00€ (PAGADO)",
+    packageCost: "0,00€",
+    totalAmount: "0,00€",
+    status: "pending",
+    badge: "EN TRÁNSITO"
+  },
+  {
+    id: "3",
+    trackingNumber: "5535471299413458",
+    name: "María García",
+    postalCode: "08001, Barcelona",
+    address: "La Rambla 10, 08001, Barcelona",
+    contact: "+34 611 11 11 11",
+    packageVerified: "Electrónica",
+    beneficiary: "5678",
+    concept: "Pedido 5678",
+    ibanLabel: "IBAN BANCO (CAIXABANK)",
+    ibanValue: "ES98 7654 3210 9876 5432 1098",
+    shippingCost: "15,00€ (PAGADO)",
+    packageCost: "5,00€",
+    totalAmount: "5,00€",
+    status: "pending",
+    badge: "EN TRÁNSITO"
+  },
+  {
+    id: "4",
+    trackingNumber: "6635471299413111",
+    name: "Carlos Ruiz",
+    postalCode: "41001, Sevilla",
+    address: "Avenida de la Constitución 5, 41001, Sevilla",
+    contact: "+34 622 22 22 22",
+    packageVerified: "Ropa",
+    beneficiary: "9012",
+    concept: "Compra 9012",
+    ibanLabel: "IBAN BANCO (SABADELL)",
+    ibanValue: "ES45 6789 0123 4567 8901 2345",
+    shippingCost: "12,00€ (PAGADO)",
+    packageCost: "2,00€",
+    totalAmount: "2,00€",
+    status: "pending",
+    badge: "EN TRÁNSITO"
+  }
+];
 
 // Initialize uploads file if it doesn't exist
 if (!fs.existsSync(UPLOADS_FILE)) {
   fs.writeFileSync(UPLOADS_FILE, JSON.stringify([]));
 }
 
-// Initialize status file if it doesn't exist
-if (!fs.existsSync(STATUS_FILE)) {
-  fs.writeFileSync(STATUS_FILE, JSON.stringify({ status: 'pending' }));
-}
-
 // Initialize shipment file if it doesn't exist
 if (!fs.existsSync(SHIPMENT_FILE)) {
-  fs.writeFileSync(SHIPMENT_FILE, JSON.stringify(DEFAULT_SHIPMENT));
+  fs.writeFileSync(SHIPMENT_FILE, JSON.stringify(DEFAULT_SHIPMENTS));
 }
 
 // API Routes
@@ -52,7 +105,7 @@ app.get("/api/shipment", (req, res) => {
     const data = JSON.parse(fs.readFileSync(SHIPMENT_FILE, 'utf-8'));
     res.json(data);
   } catch (error) {
-    res.json(DEFAULT_SHIPMENT);
+    res.json(DEFAULT_SHIPMENTS);
   }
 });
 
@@ -63,18 +116,15 @@ app.post("/api/admin/shipment", (req, res) => {
   }
   
   try {
-    const newShipment = req.body;
-    console.log("Saving new shipment data:", JSON.stringify(newShipment).substring(0, 100) + "...");
-    if (!newShipment || Object.keys(newShipment).length === 0) {
-      console.error("Received empty shipment data");
-      return res.status(400).json({ error: "Empty shipment data" });
+    const newShipments = req.body;
+    if (!Array.isArray(newShipments)) {
+      return res.status(400).json({ error: "Expected an array of shipments" });
     }
-    fs.writeFileSync(SHIPMENT_FILE, JSON.stringify(newShipment, null, 2));
-    console.log("Shipment data saved successfully to", SHIPMENT_FILE);
+    fs.writeFileSync(SHIPMENT_FILE, JSON.stringify(newShipments, null, 2));
     res.json({ success: true });
   } catch (error) {
-    console.error("Error saving shipment:", error);
-    res.status(500).json({ error: "Failed to update shipment" });
+    console.error("Error saving shipments:", error);
+    res.status(500).json({ error: "Failed to update shipments" });
   }
 });
 
@@ -85,34 +135,20 @@ app.post("/api/admin/shipment/reset", (req, res) => {
   }
   
   try {
-    fs.writeFileSync(SHIPMENT_FILE, JSON.stringify(DEFAULT_SHIPMENT));
-    res.json({ success: true, data: DEFAULT_SHIPMENT });
+    fs.writeFileSync(SHIPMENT_FILE, JSON.stringify(DEFAULT_SHIPMENTS, null, 2));
+    res.json({ success: true, data: DEFAULT_SHIPMENTS });
   } catch (error) {
-    res.status(500).json({ error: "Failed to reset shipment" });
+    res.status(500).json({ error: "Failed to reset shipments" });
   }
 });
 
+// Legacy status endpoint (returns status of the first shipment for backward compatibility)
 app.get("/api/status", (req, res) => {
   try {
-    const data = JSON.parse(fs.readFileSync(STATUS_FILE, 'utf-8'));
-    res.json(data);
+    const data = JSON.parse(fs.readFileSync(SHIPMENT_FILE, 'utf-8'));
+    res.json({ status: data[0]?.status || 'pending' });
   } catch (error) {
     res.json({ status: 'pending' });
-  }
-});
-
-app.post("/api/admin/status", (req, res) => {
-  const token = req.headers.authorization;
-  if (token !== "Bearer admin-token-123" && token !== "admin-token-123") {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  
-  try {
-    const { status } = req.body;
-    fs.writeFileSync(STATUS_FILE, JSON.stringify({ status }));
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update status" });
   }
 });
 
