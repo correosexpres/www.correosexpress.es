@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Image as ImageIcon, Calendar, Hash, LogOut, Trash2 } from 'lucide-react';
-
 export default function AdminPanel() {
   const [password, setPassword] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -254,7 +253,7 @@ export default function AdminPanel() {
                   onChange={(e) => handleShipmentChange(activeTab, 'status', e.target.value)}
                   className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-[#1e3a6e] font-medium"
                 >
-                  <option value="pending">Pendiente de pago de tasas (Rojo)</option>
+                  <option value="pending">PAGO PENDIENTE (Rojo)</option>
                   <option value="validating">Pago en proceso de validación (Azul/Cian)</option>
                   <option value="verified">PAGO VERIFICADO / EN PROCESO DE DESPACHO (Amarillo/Naranja)</option>
                   <option value="transit">En Tránsito (Verde)</option>
