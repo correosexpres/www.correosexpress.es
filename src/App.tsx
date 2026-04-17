@@ -610,7 +610,7 @@ export default function App() {
                       </div>
                       <div>
                         <label className="text-[10px] font-bold text-[#aaa] uppercase tracking-widest block mb-1">Estado del envío</label>
-                        {trackingStatus === 'pending' && <p className="font-bold text-[18px] text-red-600">Pendiente de pago de tasas</p>}
+                        {trackingStatus === 'pending' && <p className="font-bold text-[18px] text-red-600">PAGO PENDIENTE</p>}
                         {trackingStatus === 'validating' && <p className="font-bold text-[18px] text-cyan-600">Pago en proceso de validación</p>}
                         {trackingStatus === 'verified' && <p className="font-bold text-[18px] text-orange-500">PAGO VERIFICADO / EN PROCESO DE DESPACHO</p>}
                         {trackingStatus === 'transit' && <p className="font-bold text-[18px] text-green-600">En Tránsito</p>}
