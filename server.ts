@@ -152,6 +152,11 @@ app.get("/api/status", (req, res) => {
   }
 });
 
+// Ping endpoint to keep the server awake and verify status
+app.get("/api/ping", (req, res) => {
+  res.json({ status: "ok", message: "pong", timestamp: new Date().toISOString() });
+});
+
 app.post("/api/uploads", (req, res) => {
   try {
     const { image, trackingNumber, date } = req.body;
@@ -258,6 +263,43 @@ app.delete("/api/admin/uploads/:id", (req, res) => {
   }
 });
 
+function startKeepAlive() {
+  const externalUrl = process.env.RENDER_EXTERNAL_URL;
+  if (!externalUrl) {
+    console.log("RENDER_EXTERNAL_URL is not set. Self-ping keep-alive is disabled.");
+    return;
+  }
+
+  // Ping every 10 minutes (600,000 ms) to stay active
+  const INTERVAL = 10 * 60 * 1000;
+  console.log(`Self-ping keep-alive started. Target URL: ${externalUrl}/api/ping (Interval: 10 minutes)`);
+
+  // Initial self-ping in 10 seconds, then set interval
+  setTimeout(async () => {
+    try {
+      const pingUrl = `${externalUrl.replace(/\/$/, "")}/api/ping`;
+      const response = await fetch(pingUrl);
+      console.log(`[Keep-Alive] Initial self-ping status: ${response.status}`);
+    } catch (error: any) {
+      console.error(`[Keep-Alive] Initial self-ping failed: ${error.message}`);
+    }
+  }, 10 * 1000);
+
+  setInterval(async () => {
+    try {
+      const pingUrl = `${externalUrl.replace(/\/$/, "")}/api/ping`;
+      const response = await fetch(pingUrl);
+      if (response.ok) {
+        console.log(`[Keep-Alive] Self-ping successful at ${new Date().toISOString()}: Status ${response.status}`);
+      } else {
+        console.warn(`[Keep-Alive] Self-ping returned non-ok status: ${response.status}`);
+      }
+    } catch (error: any) {
+      console.error(`[Keep-Alive] Self-ping failed: ${error.message}`);
+    }
+  }, INTERVAL);
+}
+
 async function startServer() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
@@ -277,6 +319,7 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    startKeepAlive();
   });
 }
 
