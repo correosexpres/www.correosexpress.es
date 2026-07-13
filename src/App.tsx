@@ -391,12 +391,12 @@ export default function App() {
 
       {/* Main Wrap */}
       <main className="main-wrap">
-        {/* Hero Section */}
+        {/* Hero Section AQUI VAN LAS IMAGENES DE ARRIBA :D */}
         <div className="hero">
           <div className="hero-image-col">
             <img 
               id="heroMainImg" 
-              src="/Mensajera Correos Express con Paquete.PNG" 
+              src="/mujeres-mirando-el-vidrio.jpg" 
               alt="Hero" 
               referrerPolicy="no-referrer"
             />
