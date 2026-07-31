@@ -396,7 +396,7 @@ export default function App() {
           <div className="hero-image-col">
             <img 
               id="heroMainImg" 
-              src="/promo_maletacorreos.png" 
+              src="/Islas_Express.jpg" 
               alt="Hero" 
               referrerPolicy="no-referrer"
             />
